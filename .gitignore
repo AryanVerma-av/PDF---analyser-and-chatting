@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Secrets and environment files - NEVER COMMIT ACTIVE KEYS
+*.env
+*.env.*
+.env
+.env.*
+.env.local
+.env*.local
+backend/.env
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Vector database storage
+chroma_db/
+**/chroma_db/
+*.chroma
+*.sqlite3
+
+# Logs and temporary files
+*.log
+tmp/
+temp_uploads/
+
+# IDE files
+.vscode/
+.idea/
+.DS_Store

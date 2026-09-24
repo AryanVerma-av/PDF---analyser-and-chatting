@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF RAG Assistant</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-content">
+        <h1 class="brand-title">PDF RAG Assistant</h1>
+        <div id="connection-status" class="status-indicator">
+          <span class="status-dot"></span>
+          <span id="connection-text">Checking backend...</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <!-- Error Notification Area -->
+      <div id="error-banner" class="banner banner-error hidden" role="alert">
+        <div class="banner-body">
+          <strong class="banner-title">Error</strong>
+          <p id="error-message" class="banner-text"></p>
+        </div>
+        <button id="dismiss-error-btn" type="button" class="btn-dismiss" aria-label="Dismiss">Dismiss</button>
+      </div>
+
+      <!-- PDF Upload Section -->
+      <section class="section upload-section">
+        <h2 class="section-title">Upload your PDF</h2>
+        <div id="drop-zone" class="drop-zone">
+          <input type="file" id="pdf-input" accept=".pdf,application/pdf" class="file-input-hidden">
+          <div class="drop-zone-content">
+            <p class="drop-zone-text">Select or drag a PDF document to begin indexing</p>
+            <button type="button" id="select-file-btn" class="btn btn-secondary">Select PDF</button>
+          </div>
+        </div>
+
+        <!-- Document Metadata Display -->
+        <div id="uploaded-info" class="meta-card hidden">
+          <div class="meta-row">
+            <span class="meta-label">Uploaded Document:</span>
+            <span id="meta-filename" class="meta-value">example.pdf</span>
+          </div>
+          <div class="meta-details">
+            <span id="meta-pages" class="meta-tag">0 pages</span>
+            <span id="meta-chunks" class="meta-tag">0 chunks indexed</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Question Input Section -->
+      <section class="section question-section">
+        <h2 class="section-title">Ask a question</h2>
+        <form id="ask-form" class="question-form">
+          <div class="input-wrapper">
+            <input 
+              type="text" 
+              id="question-input" 
+              class="text-input" 
+              placeholder="Ask a question about the document..." 
+              autocomplete="off"
+              disabled
+            >
+            <button type="submit" id="ask-btn" class="btn btn-primary" disabled>Ask</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Processing / Loading State -->
+      <div id="loading-indicator" class="loading-state hidden">
+        <div class="spinner"></div>
+        <p id="loading-text" class="loading-text">Processing PDF...</p>
+      </div>
+
+      <!-- Results Display Section -->
+      <section id="results-section" class="section results-section hidden">
+        <div class="answer-card">
+          <div class="answer-header">
+            <h2 class="section-title">Answer</h2>
+            <span id="latency-tag" class="latency-tag">0.0s</span>
+          </div>
+          <div id="answer-content" class="answer-text"></div>
+        </div>
+
+        <div id="sources-container" class="sources-card hidden">
+          <h3 class="sources-title">Sources</h3>
+          <ul id="sources-list" class="sources-list"></ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>PDF RAG Assistant &mdash; Retrieval-Augmented Generation Pipeline</p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
