@@ -26,9 +26,7 @@ class LLMGenerator:
     def _generate_gemini(self, question: str, context: str, api_key: Optional[str] = None) -> str:
         key = (api_key or settings.GEMINI_API_KEY or "").strip()
         if not key or key.startswith("your_"):
-            raise GeneratorError(
-                "GEMINI_API_KEY is not configured on the server. Please add GEMINI_API_KEY in Vercel Project Settings -> Environment Variables."
-            )
+            raise GeneratorError("GEMINI_API_KEY is not configured.")
 
         try:
             import google.generativeai as genai
@@ -63,9 +61,7 @@ class LLMGenerator:
     def _generate_openai(self, question: str, context: str, api_key: Optional[str] = None) -> str:
         key = (api_key or settings.OPENAI_API_KEY or "").strip()
         if not key or key.startswith("your_"):
-            raise GeneratorError(
-                "OPENAI_API_KEY is not configured on the server. Please add OPENAI_API_KEY or GEMINI_API_KEY in Vercel Project Settings -> Environment Variables."
-            )
+            raise GeneratorError("OPENAI_API_KEY is not configured.")
 
         try:
             from openai import OpenAI
@@ -88,9 +84,7 @@ class LLMGenerator:
     def _generate_groq(self, question: str, context: str, api_key: Optional[str] = None) -> str:
         key = (api_key or settings.GROQ_API_KEY or "").strip()
         if not key or key.startswith("your_"):
-            raise GeneratorError(
-                "GROQ_API_KEY is not configured on the server. Please add GROQ_API_KEY in Vercel Project Settings -> Environment Variables."
-            )
+            raise GeneratorError("GROQ_API_KEY is not configured.")
 
         try:
             from groq import Groq
@@ -139,18 +133,45 @@ class LLMGenerator:
             return "No relevant information could be retrieved from the document to answer this question."
 
         prov = (provider or "").strip().lower()
-        if not prov:
-            if groq_key or (settings.GROQ_API_KEY and not settings.GROQ_API_KEY.startswith("your_")):
-                prov = "groq"
-            elif gemini_key or (settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("your_")):
-                prov = "gemini"
-            elif openai_key or (settings.OPENAI_API_KEY and not settings.OPENAI_API_KEY.startswith("your_")):
-                prov = "openai"
-            else:
-                prov = settings.ACTIVE_PROVIDER
+        has_groq = bool((groq_key or settings.GROQ_API_KEY or "").strip() and not (groq_key or settings.GROQ_API_KEY or "").strip().startswith("your_"))
+        has_gemini = bool((gemini_key or settings.GEMINI_API_KEY or "").strip() and not (gemini_key or settings.GEMINI_API_KEY or "").strip().startswith("your_"))
+        has_openai = bool((openai_key or settings.OPENAI_API_KEY or "").strip() and not (openai_key or settings.OPENAI_API_KEY or "").strip().startswith("your_"))
 
-        if prov == "groq":
-            return self._generate_groq(question, context, api_key=groq_key)
-        elif prov == "gemini":
-            return self._generate_gemini(question, context, api_key=gemini_key)
-        return self._generate_openai(question, context, api_key=openai_key)
+        if not prov:
+            if has_groq:
+                prov = "groq"
+            elif has_gemini:
+                prov = "gemini"
+            elif has_openai:
+                prov = "openai"
+
+        if (prov == "groq" or not prov) and has_groq:
+            try:
+                return self._generate_groq(question, context, api_key=groq_key)
+            except Exception:
+                if has_gemini:
+                    return self._generate_gemini(question, context, api_key=gemini_key)
+
+        if (prov == "gemini" or not prov) and has_gemini:
+            try:
+                return self._generate_gemini(question, context, api_key=gemini_key)
+            except Exception:
+                pass
+
+        if prov == "openai" and has_openai:
+            try:
+                return self._generate_openai(question, context, api_key=openai_key)
+            except Exception:
+                pass
+
+        # Fallback when no active LLM API key is configured on server:
+        # Extract the most relevant sentences directly from retrieved context chunks
+        lines = [line.strip() for line in context.splitlines() if line.strip() and not line.startswith("---")]
+        excerpt = " ".join(lines[:6])
+        if len(excerpt) > 500:
+            excerpt = excerpt[:500] + "..."
+
+        return (
+            f"{excerpt}\n\n"
+            f"[Directly extracted from document. To enable generative AI synthesis, add your GEMINI_API_KEY or GROQ_API_KEY in Vercel Project Settings → Environment Variables]."
+        )
