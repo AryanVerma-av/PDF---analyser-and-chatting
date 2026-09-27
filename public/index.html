@@ -11,14 +11,29 @@
     <header class="app-header">
       <div class="header-content">
         <h1 class="brand-title">PDF RAG Assistant</h1>
-        <div id="connection-status" class="status-indicator">
-          <span class="status-dot"></span>
-          <span id="connection-text">Checking backend...</span>
+        <div class="header-actions">
+          <button id="open-api-modal-btn" type="button" class="btn-key" title="Configure LLM API Keys">
+            <span class="key-icon">🔑</span>
+            <span id="api-key-btn-text">API Keys</span>
+          </button>
+          <div id="connection-status" class="status-indicator">
+            <span class="status-dot"></span>
+            <span id="connection-text">Checking backend...</span>
+          </div>
         </div>
       </div>
     </header>
 
     <main class="main-content">
+      <!-- Missing Keys Warning Banner -->
+      <div id="keys-warning-banner" class="banner banner-warning hidden" role="alert">
+        <div class="banner-body">
+          <strong class="banner-title">API Key Needed</strong>
+          <p class="banner-text">No API key is configured on this deployment yet. Enter your Gemini or Groq key to query documents.</p>
+        </div>
+        <button id="banner-config-keys-btn" type="button" class="btn-warning-action">Enter API Key</button>
+      </div>
+
       <!-- Error Notification Area -->
       <div id="error-banner" class="banner banner-error hidden" role="alert">
         <div class="banner-body">
@@ -92,6 +107,39 @@
         </div>
       </section>
     </main>
+
+    <!-- API Key Configuration Modal -->
+    <div id="api-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 id="modal-title" class="modal-title">API Key Configuration</h2>
+          <button id="close-api-modal-btn" type="button" class="btn-dismiss" aria-label="Close">&times;</button>
+        </div>
+        <p class="modal-description">
+          Keys entered here are stored in your browser's private local storage. Or configure them permanently in <strong>Vercel Project Settings &rarr; Environment Variables</strong>.
+        </p>
+        <form id="api-key-form">
+          <div class="form-group">
+            <label for="gemini-key-input" class="form-label">Google Gemini API Key (Recommended)</label>
+            <input type="password" id="gemini-key-input" class="text-input" placeholder="Paste Gemini key (AQ... or AIza...)" autocomplete="off">
+            <small class="form-hint">Used for PDF embeddings and answers. <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Get free key at Google AI Studio</a></small>
+          </div>
+          <div class="form-group">
+            <label for="groq-key-input" class="form-label">Groq API Key (Optional)</label>
+            <input type="password" id="groq-key-input" class="text-input" placeholder="Paste Groq key (gsk_...)" autocomplete="off">
+            <small class="form-hint">Ultra-fast inference via Groq LPU. <a href="https://console.groq.com/keys" target="_blank" rel="noopener">Get free key at Groq Console</a></small>
+          </div>
+          <div class="form-group">
+            <label for="openai-key-input" class="form-label">OpenAI API Key (Optional)</label>
+            <input type="password" id="openai-key-input" class="text-input" placeholder="Paste OpenAI key (sk-...)" autocomplete="off">
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn btn-primary">Save Keys</button>
+            <button type="button" id="clear-api-keys-btn" class="btn btn-secondary">Clear Keys</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <footer class="app-footer">
       <p>PDF RAG Assistant &mdash; Retrieval-Augmented Generation Pipeline</p>

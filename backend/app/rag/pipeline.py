@@ -1,5 +1,5 @@
 import time
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, Optional
 from app.config import settings
 from app.models.schemas import SourceCitation
 from app.rag.loader import PDFLoader
@@ -27,7 +27,7 @@ class RAGPipeline:
         self.retriever = Retriever(self.embedding_service, self.vector_store)
         self.generator = LLMGenerator()
 
-        self.active_filename: str = None
+        self.active_filename: Optional[str] = None
         self.total_pages: int = 0
         self.total_chunks: int = 0
 
@@ -35,12 +35,19 @@ class RAGPipeline:
         """Checks if a PDF has been successfully ingested and indexed."""
         return bool(self.active_filename and self.vector_store.count() > 0)
 
-    def ingest_pdf(self, file_bytes: bytes, filename: str) -> Dict[str, Any]:
+    def ingest_pdf(
+        self,
+        file_bytes: bytes,
+        filename: str,
+        gemini_key: Optional[str] = None,
+        openai_key: Optional[str] = None,
+        provider: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Processes an uploaded PDF through:
         1. Text extraction page by page
         2. Chunking with page metadata
-        3. Embedding generation
+        3. Embedding generation (Gemini or OpenAI)
         4. Vector store indexing
         """
         start_time = time.time()
@@ -56,7 +63,9 @@ class RAGPipeline:
 
         # Step 3: Generate embeddings
         chunk_texts = [c.text for c in chunks]
-        embeddings = self.embedding_service.embed_texts(chunk_texts)
+        embedding_key = (gemini_key or openai_key or "").strip() or None
+        emb_provider = "gemini" if gemini_key else (provider or None)
+        embeddings = self.embedding_service.embed_texts(chunk_texts, api_key=embedding_key, provider=emb_provider)
 
         # Step 4: Clear previous index and store new embeddings in vector database
         self.vector_store.reset()
@@ -74,7 +83,14 @@ class RAGPipeline:
             "processing_time_seconds": elapsed,
         }
 
-    def answer_question(self, question: str) -> Tuple[str, List[SourceCitation], float]:
+    def answer_question(
+        self,
+        question: str,
+        gemini_key: Optional[str] = None,
+        groq_key: Optional[str] = None,
+        openai_key: Optional[str] = None,
+        provider: Optional[str] = None,
+    ) -> Tuple[str, List[SourceCitation], float]:
         """
         Answers a user question through:
         1. Retrieval of top relevant chunks
@@ -86,10 +102,24 @@ class RAGPipeline:
         start_time = time.time()
 
         # Step 5 & 6: Retrieve relevant chunks with citations
-        context, citations = self.retriever.retrieve(question, top_k=settings.TOP_K)
+        embedding_key = (gemini_key or openai_key or "").strip() or None
+        emb_provider = "gemini" if gemini_key else (provider or None)
+        context, citations = self.retriever.retrieve(
+            question,
+            top_k=settings.TOP_K,
+            embedding_key=embedding_key,
+            provider=emb_provider,
+        )
 
         # Step 7 & 8: Generate grounded answer from LLM
-        answer = self.generator.generate(question, context)
+        answer = self.generator.generate(
+            question,
+            context,
+            gemini_key=gemini_key,
+            groq_key=groq_key,
+            openai_key=openai_key,
+            provider=provider,
+        )
 
         latency = round(time.time() - start_time, 2)
         return answer, citations, latency

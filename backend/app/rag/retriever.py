@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from app.models.schemas import SourceCitation
 from app.rag.embeddings import EmbeddingService
 from app.rag.vectorstore import VectorStore
@@ -12,7 +12,13 @@ class Retriever:
         self.embedding_service = embedding_service
         self.vector_store = vector_store
 
-    def retrieve(self, query: str, top_k: int = None) -> Tuple[str, List[SourceCitation]]:
+    def retrieve(
+        self,
+        query: str,
+        top_k: Optional[int] = None,
+        embedding_key: Optional[str] = None,
+        provider: Optional[str] = None,
+    ) -> Tuple[str, List[SourceCitation]]:
         """
         Embeds the query, retrieves top_k matching chunks, formats context text and citations.
         
@@ -21,7 +27,7 @@ class Retriever:
             citations: List[SourceCitation] for the API response
         """
         k = top_k or settings.TOP_K
-        query_vector = self.embedding_service.embed_query(query)
+        query_vector = self.embedding_service.embed_query(query, api_key=embedding_key, provider=provider)
         raw_matches = self.vector_store.query(query_vector, top_k=k)
 
         if not raw_matches:

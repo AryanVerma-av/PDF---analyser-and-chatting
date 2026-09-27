@@ -24,6 +24,11 @@ class HealthResponse(BaseModel):
     total_pages: int = 0
     total_chunks: int = 0
     vector_store_ready: bool = False
+    has_keys: bool = False
+    has_gemini_key: bool = False
+    has_groq_key: bool = False
+    has_openai_key: bool = False
+    active_provider: Optional[str] = None
 
 
 class UploadResponse(BaseModel):

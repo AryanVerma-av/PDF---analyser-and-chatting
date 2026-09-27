@@ -1,3 +1,4 @@
+from typing import Optional
 from app.config import settings
 
 
@@ -7,7 +8,7 @@ class GeneratorError(Exception):
 
 
 class LLMGenerator:
-    """Generates grounded answers from retrieved context using Google Gemini or OpenAI."""
+    """Generates grounded answers from retrieved context using Google Gemini, Groq, or OpenAI."""
 
     SYSTEM_PROMPT = (
         "You are a professional PDF question-answering assistant.\n"
@@ -22,15 +23,16 @@ class LLMGenerator:
         "6. Do NOT use any emojis in your answer under any circumstances."
     )
 
-    def _generate_gemini(self, question: str, context: str) -> str:
-        if not settings.GEMINI_API_KEY:
+    def _generate_gemini(self, question: str, context: str, api_key: Optional[str] = None) -> str:
+        key = (api_key or settings.GEMINI_API_KEY or "").strip()
+        if not key or key.startswith("your_"):
             raise GeneratorError(
-                "GEMINI_API_KEY is not configured. Please set GEMINI_API_KEY in backend/.env"
+                "GEMINI_API_KEY is not configured. Please add GEMINI_API_KEY in Vercel Project Settings -> Environment Variables, or enter it in the API Key settings on the page."
             )
 
         try:
             import google.generativeai as genai
-            genai.configure(api_key=settings.GEMINI_API_KEY)
+            genai.configure(api_key=key)
 
             model_name = settings.GEMINI_LLM_MODEL
             try:
@@ -58,15 +60,16 @@ class LLMGenerator:
         except Exception as exc:
             raise GeneratorError(f"Google Gemini generation failed: {str(exc)}") from exc
 
-    def _generate_openai(self, question: str, context: str) -> str:
-        if not settings.OPENAI_API_KEY:
+    def _generate_openai(self, question: str, context: str, api_key: Optional[str] = None) -> str:
+        key = (api_key or settings.OPENAI_API_KEY or "").strip()
+        if not key or key.startswith("your_"):
             raise GeneratorError(
-                "OPENAI_API_KEY is not configured. Please set OPENAI_API_KEY or GEMINI_API_KEY in backend/.env"
+                "OPENAI_API_KEY is not configured. Please add OPENAI_API_KEY or GEMINI_API_KEY in Vercel Project Settings -> Environment Variables, or enter it in the API Key settings on the page."
             )
 
         try:
-            from openai import OpenAI, OpenAIError
-            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            from openai import OpenAI
+            client = OpenAI(api_key=key)
             user_content = f"Retrieved Context:\n{context}\n\nQuestion:\n{question}\n\nAnswer:"
 
             response = client.chat.completions.create(
@@ -82,15 +85,16 @@ class LLMGenerator:
         except Exception as exc:
             raise GeneratorError(f"OpenAI completion failed: {str(exc)}") from exc
 
-    def _generate_groq(self, question: str, context: str) -> str:
-        if not settings.GROQ_API_KEY:
+    def _generate_groq(self, question: str, context: str, api_key: Optional[str] = None) -> str:
+        key = (api_key or settings.GROQ_API_KEY or "").strip()
+        if not key or key.startswith("your_"):
             raise GeneratorError(
-                "GROQ_API_KEY is not configured. Please set GROQ_API_KEY in backend/.env"
+                "GROQ_API_KEY is not configured. Please add GROQ_API_KEY in Vercel Project Settings -> Environment Variables, or enter it in the API Key settings on the page."
             )
 
         try:
             from groq import Groq
-            client = Groq(api_key=settings.GROQ_API_KEY)
+            client = Groq(api_key=key)
             user_content = f"Retrieved Context:\n{context}\n\nQuestion:\n{question}\n\nAnswer:"
 
             models_to_try = [settings.GROQ_LLM_MODEL]
@@ -121,14 +125,32 @@ class LLMGenerator:
         except Exception as exc:
             raise GeneratorError(f"Groq completion failed: {str(exc)}") from exc
 
-    def generate(self, question: str, context: str) -> str:
+    def generate(
+        self,
+        question: str,
+        context: str,
+        gemini_key: Optional[str] = None,
+        groq_key: Optional[str] = None,
+        openai_key: Optional[str] = None,
+        provider: Optional[str] = None,
+    ) -> str:
         """Sends the question and retrieved context to the active LLM provider."""
         if not context.strip():
             return "No relevant information could be retrieved from the document to answer this question."
 
-        provider = settings.ACTIVE_PROVIDER
-        if provider == "groq":
-            return self._generate_groq(question, context)
-        elif provider == "gemini":
-            return self._generate_gemini(question, context)
-        return self._generate_openai(question, context)
+        prov = (provider or "").strip().lower()
+        if not prov:
+            if groq_key or (settings.GROQ_API_KEY and not settings.GROQ_API_KEY.startswith("your_")):
+                prov = "groq"
+            elif gemini_key or (settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("your_")):
+                prov = "gemini"
+            elif openai_key or (settings.OPENAI_API_KEY and not settings.OPENAI_API_KEY.startswith("your_")):
+                prov = "openai"
+            else:
+                prov = settings.ACTIVE_PROVIDER
+
+        if prov == "groq":
+            return self._generate_groq(question, context, api_key=groq_key)
+        elif prov == "gemini":
+            return self._generate_gemini(question, context, api_key=gemini_key)
+        return self._generate_openai(question, context, api_key=openai_key)

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
+from typing import Optional
+from fastapi import APIRouter, UploadFile, File, Header, HTTPException, Depends, status
 from app.models.schemas import UploadResponse
 from app.services.state import get_pipeline
 from app.rag.pipeline import RAGPipeline
@@ -15,6 +16,9 @@ MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB
 async def upload_pdf(
     file: UploadFile = File(...),
     pipeline: RAGPipeline = Depends(get_pipeline),
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key"),
+    x_openai_api_key: Optional[str] = Header(None, alias="X-OpenAI-API-Key"),
+    x_llm_provider: Optional[str] = Header(None, alias="X-LLM-Provider"),
 ):
     """
     Upload and process a PDF document through the RAG pipeline.
@@ -53,7 +57,13 @@ async def upload_pdf(
 
     # Ingest through the RAG pipeline
     try:
-        result = pipeline.ingest_pdf(content, filename)
+        result = pipeline.ingest_pdf(
+            content,
+            filename,
+            gemini_key=x_gemini_api_key,
+            openai_key=x_openai_api_key,
+            provider=x_llm_provider,
+        )
     except PDFLoaderError as ple:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -61,7 +71,7 @@ async def upload_pdf(
         )
     except EmbeddingServiceError as ese:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Embedding generation error: {str(ese)}",
         )
     except VectorStoreError as vse:

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from typing import Optional
+from fastapi import APIRouter, Header, HTTPException, Depends, status
 from app.models.schemas import AskRequest, AskResponse
 from app.services.state import get_pipeline
 from app.rag.pipeline import RAGPipeline
@@ -13,6 +14,10 @@ router = APIRouter(tags=["Question Answering"])
 async def ask_question(
     payload: AskRequest,
     pipeline: RAGPipeline = Depends(get_pipeline),
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key"),
+    x_groq_api_key: Optional[str] = Header(None, alias="X-Groq-API-Key"),
+    x_openai_api_key: Optional[str] = Header(None, alias="X-OpenAI-API-Key"),
+    x_llm_provider: Optional[str] = Header(None, alias="X-LLM-Provider"),
 ):
     """
     Answers a question based strictly on the retrieved context from the uploaded PDF.
@@ -32,21 +37,27 @@ async def ask_question(
         )
 
     try:
-        answer, sources, latency = pipeline.answer_question(clean_question)
+        answer, sources, latency = pipeline.answer_question(
+            clean_question,
+            gemini_key=x_gemini_api_key,
+            groq_key=x_groq_api_key,
+            openai_key=x_openai_api_key,
+            provider=x_llm_provider,
+        )
     except EmbeddingServiceError as ese:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Query embedding error: {str(ese)}",
+        )
+    except GeneratorError as ge:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"LLM generation error: {str(ge)}",
         )
     except VectorStoreError as vse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Retrieval error: {str(vse)}",
-        )
-    except GeneratorError as ge:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"LLM generation error: {str(ge)}",
         )
     except Exception as exc:
         raise HTTPException(
