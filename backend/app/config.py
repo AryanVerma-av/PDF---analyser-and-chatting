@@ -127,11 +127,19 @@ class Settings:
     # Vector Store
     @property
     def CHROMA_PERSIST_DIRECTORY(self) -> str:
-        return os.getenv("CHROMA_PERSIST_DIRECTORY", str(BASE_DIR / "chroma_db"))
+        # On Vercel / serverless runtimes, the filesystem is read-only except /tmp
+        default_dir = "/tmp/chroma_db" if os.getenv("VERCEL") else str(BASE_DIR / "chroma_db")
+        return os.getenv("CHROMA_PERSIST_DIRECTORY", default_dir)
 
     # Server Configuration
-    HOST: str = os.getenv("HOST", "127.0.0.1")
-    PORT: int = int(os.getenv("PORT", "8000"))
+    @property
+    def HOST(self) -> str:
+        # Bind to 0.0.0.0 on cloud hosts (e.g. Render, Railway, Docker) or when PORT is provided
+        return os.getenv("HOST", "0.0.0.0" if os.getenv("PORT") else "127.0.0.1")
+
+    @property
+    def PORT(self) -> int:
+        return int(os.getenv("PORT", "8000"))
 
 
 settings = Settings()

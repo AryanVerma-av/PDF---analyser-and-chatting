@@ -1,4 +1,11 @@
+import sys
 from pathlib import Path
+
+# Add backend directory to sys.path so "app.*" imports work when run from repo root (e.g. Vercel)
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -15,7 +22,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS configuration for local development
+# CORS configuration for local development and deployed frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,13 +37,29 @@ app.include_router(upload_router)
 app.include_router(ask_router)
 
 # Mount frontend files for convenient single-server running
-FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
+candidate_dirs = [
+    Path(__file__).resolve().parent.parent.parent / "frontend",
+    Path(__file__).resolve().parent.parent.parent / "public",
+    Path(__file__).resolve().parent.parent / "frontend",
+    Path.cwd() / "frontend",
+    Path.cwd() / "public",
+]
 
-if FRONTEND_DIR.exists():
+FRONTEND_DIR = None
+for candidate in candidate_dirs:
+    if candidate.exists() and (candidate / "index.html").exists():
+        FRONTEND_DIR = candidate
+        break
+
+if FRONTEND_DIR:
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
     @app.get("/", include_in_schema=False)
     async def serve_index():
+        return FileResponse(FRONTEND_DIR / "index.html")
+
+    @app.get("/index.html", include_in_schema=False)
+    async def serve_index_html():
         return FileResponse(FRONTEND_DIR / "index.html")
 
 

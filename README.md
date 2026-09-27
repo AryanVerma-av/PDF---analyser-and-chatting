@@ -264,3 +264,45 @@ The test validates:
   The uploaded PDF may be a scanned document or image-only file. Use an OCR tool or a text-based PDF.
 - **Error: `No PDF has been uploaded yet`**
   You must upload and process a PDF before submitting questions.
+
+---
+
+## Deployment Guide
+
+### Deploying to Vercel (Recommended)
+
+This repository is pre-configured for **zero-config Vercel deployment** with the FastAPI ASGI runtime:
+
+1. Push this repository to GitHub:
+   ```bash
+   git add .
+   git commit -m "Configure Vercel deployment and entrypoints"
+   git push origin main
+   ```
+2. Import the repository in [Vercel](https://vercel.com/new).
+3. In **Project Settings -> Environment Variables**, add your API keys:
+   - `GEMINI_API_KEY` (or `GROQ_API_KEY` or `OPENAI_API_KEY`)
+   - `LLM_PROVIDER`: `gemini` (or `groq` / `openai`)
+4. Click **Deploy**. Vercel will:
+   - Automatically detect the FastAPI application via `pyproject.toml` (`backend.app.main:app`).
+   - Serve the frontend and static files from the global Edge CDN via `public/`.
+   - Run the API routes on Vercel Functions with automatic scaling.
+
+### Deploying with Docker / Container Platforms
+
+1. Build the Docker container:
+   ```bash
+   docker build -t pdf-rag-assistant .
+   ```
+2. Run the container:
+   ```bash
+   docker run -p 8000:8000 --env-file backend/.env pdf-rag-assistant
+   ```
+3. Visit `http://localhost:8000`.
+
+### Deploying to Render or Railway
+
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+- Set your environment variables (`GEMINI_API_KEY` / `GROQ_API_KEY` / `OPENAI_API_KEY`).
+
