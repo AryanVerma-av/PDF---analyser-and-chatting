@@ -90,6 +90,7 @@ class RAGPipeline:
         groq_key: Optional[str] = None,
         openai_key: Optional[str] = None,
         provider: Optional[str] = None,
+        top_k: Optional[int] = None,
     ) -> Tuple[str, List[SourceCitation], float]:
         """
         Answers a user question through:
@@ -104,9 +105,10 @@ class RAGPipeline:
         # Step 5 & 6: Retrieve relevant chunks with citations
         embedding_key = (gemini_key or openai_key or "").strip() or None
         emb_provider = "gemini" if gemini_key else (provider or None)
+        k_val = top_k if top_k is not None else settings.TOP_K
         context, citations = self.retriever.retrieve(
             question,
-            top_k=settings.TOP_K,
+            top_k=k_val,
             embedding_key=embedding_key,
             provider=emb_provider,
         )

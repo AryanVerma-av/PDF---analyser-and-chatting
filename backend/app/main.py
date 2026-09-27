@@ -61,6 +61,15 @@ if FRONTEND_DIR:
     @app.get("/index.html", include_in_schema=False)
     async def serve_index_html():
         return FileResponse(FRONTEND_DIR / "index.html")
+else:
+    @app.get("/", include_in_schema=False)
+    async def root_info():
+        return {
+            "status": "ok",
+            "app": "PDF RAG Assistant API",
+            "docs": "/docs",
+            "ui": "Run 'streamlit run app.py' for the Streamlit user interface.",
+        }
 
 
 if __name__ == "__main__":

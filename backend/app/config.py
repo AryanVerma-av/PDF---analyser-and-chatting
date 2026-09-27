@@ -11,10 +11,23 @@ class Settings:
     """Application configuration dynamically loaded from environment variables."""
 
     def _reload_env(self):
+        # Check root .env and backend .env
+        root_env = BASE_DIR.parent / ".env"
+        if root_env.exists():
+            load_dotenv(dotenv_path=root_env, override=False)
         if ENV_PATH.exists():
-            load_dotenv(dotenv_path=ENV_PATH, override=True)
-        else:
-            load_dotenv(override=True)
+            load_dotenv(dotenv_path=ENV_PATH, override=False)
+        load_dotenv(override=False)
+
+        # Check Streamlit secrets if running inside Streamlit Cloud
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets"):
+                for sec_key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "LLM_PROVIDER", "GROQ_LLM_MODEL", "GEMINI_LLM_MODEL", "OPENAI_LLM_MODEL"]:
+                    if sec_key in st.secrets and (sec_key not in os.environ or not os.environ[sec_key]):
+                        os.environ[sec_key] = str(st.secrets[sec_key]).strip()
+        except Exception:
+            pass
 
     @property
     def GEMINI_API_KEY(self) -> str:
@@ -22,16 +35,16 @@ class Settings:
         key = os.getenv("GEMINI_API_KEY", "").strip()
         # Fallback check if user put it in .env.example
         if not key or key.startswith("your_"):
-            example_path = BASE_DIR / ".env.example"
-            if example_path.exists():
-                try:
-                    for line in example_path.read_text(encoding="utf-8").splitlines():
-                        if line.startswith("GEMINI_API_KEY=") and not line.endswith("your_gemini_api_key_here"):
-                            cand = line.split("=", 1)[1].strip()
-                            if cand and not cand.startswith("your_"):
-                                return cand
-                except Exception:
-                    pass
+            for expath in [BASE_DIR / ".env.example", BASE_DIR.parent / ".env.example"]:
+                if expath.exists():
+                    try:
+                        for line in expath.read_text(encoding="utf-8").splitlines():
+                            if line.startswith("GEMINI_API_KEY=") and not line.endswith("your_gemini_api_key_here"):
+                                cand = line.split("=", 1)[1].strip()
+                                if cand and not cand.startswith("your_"):
+                                    return cand
+                    except Exception:
+                        pass
         return key
 
     @property
