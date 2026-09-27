@@ -27,7 +27,7 @@ class LLMGenerator:
         key = (api_key or settings.GEMINI_API_KEY or "").strip()
         if not key or key.startswith("your_"):
             raise GeneratorError(
-                "GEMINI_API_KEY is not configured. Please add GEMINI_API_KEY in Vercel Project Settings -> Environment Variables, or enter it in the API Key settings on the page."
+                "GEMINI_API_KEY is not configured on the server. Please add GEMINI_API_KEY in Vercel Project Settings -> Environment Variables."
             )
 
         try:
@@ -64,7 +64,7 @@ class LLMGenerator:
         key = (api_key or settings.OPENAI_API_KEY or "").strip()
         if not key or key.startswith("your_"):
             raise GeneratorError(
-                "OPENAI_API_KEY is not configured. Please add OPENAI_API_KEY or GEMINI_API_KEY in Vercel Project Settings -> Environment Variables, or enter it in the API Key settings on the page."
+                "OPENAI_API_KEY is not configured on the server. Please add OPENAI_API_KEY or GEMINI_API_KEY in Vercel Project Settings -> Environment Variables."
             )
 
         try:
@@ -89,7 +89,7 @@ class LLMGenerator:
         key = (api_key or settings.GROQ_API_KEY or "").strip()
         if not key or key.startswith("your_"):
             raise GeneratorError(
-                "GROQ_API_KEY is not configured. Please add GROQ_API_KEY in Vercel Project Settings -> Environment Variables, or enter it in the API Key settings on the page."
+                "GROQ_API_KEY is not configured on the server. Please add GROQ_API_KEY in Vercel Project Settings -> Environment Variables."
             )
 
         try:
