@@ -288,19 +288,7 @@ This repository is pre-configured for **zero-config Vercel deployment** with the
    - Serve the frontend and static files from the global Edge CDN via `public/`.
    - Run the API routes on Vercel Functions with automatic scaling.
 
-### Deploying with Docker / Container Platforms
-
-1. Build the Docker container:
-   ```bash
-   docker build -t pdf-rag-assistant .
-   ```
-2. Run the container:
-   ```bash
-   docker run -p 8000:8000 --env-file backend/.env pdf-rag-assistant
-   ```
-3. Visit `http://localhost:8000`.
-
-### Deploying to Render or Railway
+### Deploying to Render or Railway (Optional Alternatives)
 
 - **Build Command:** `pip install -r requirements.txt`
 - **Start Command:** `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
